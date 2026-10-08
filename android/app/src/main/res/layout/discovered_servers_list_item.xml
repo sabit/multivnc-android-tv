@@ -3,7 +3,10 @@
     android:orientation="horizontal"
     android:layout_width="fill_parent"
     android:layout_height="wrap_content"
-    android:padding="5dip">
+    android:padding="5dip"
+    android:background="?android:attr/selectableItemBackground"
+    android:focusable="true"
+    android:clickable="true">
         <TextView android:id="@+id/discovered_server_name"
         	android:textAppearance="?android:attr/textAppearanceMedium"
         	android:layout_height="wrap_content"

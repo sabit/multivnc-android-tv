@@ -129,5 +129,10 @@
 
     <string name="notification_title">Notifications disabled</string>
     <string name="notification_msg">To be able to show client status information and provide a means of navigating back to the client more easily, it is recommended to enable notifications.</string>
+    <string name="fab_menu">Menu</string>
+    <string name="zoom_in">Zoom In</string>
+    <string name="zoom_out">Zoom Out</string>
+    <string name="zoom_level_percent">%d%%</string>
+    <string name="zoom_level_percent_default">100%</string>
 
 </resources>

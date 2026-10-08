@@ -109,6 +109,11 @@ public class VncCanvasActivity extends AppCompatActivity implements PopupMenu.On
 		getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
 				WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
+		// Check if running on Android TV
+		boolean isAndroidTV = getPackageManager().hasSystemFeature(PackageManager.FEATURE_TELEVISION)
+				|| getPackageManager().hasSystemFeature("android.hardware.type.television")
+				|| getPackageManager().hasSystemFeature(PackageManager.FEATURE_LEANBACK);
+
 		// hide system ui after softkeyboard close as per https://stackoverflow.com/a/21278040/361413
 		final View decorView = getWindow().getDecorView();
 		decorView.setOnSystemUiVisibilityChangeListener (new View.OnSystemUiVisibilityChangeListener() {
@@ -227,7 +232,7 @@ public class VncCanvasActivity extends AppCompatActivity implements PopupMenu.On
 		    Bundle extras = i.getExtras();
 
 		    if (extras != null) {
-		  	    connection = extras.getParcelable(Constants.CONNECTION);
+		        connection = extras.getParcelable(Constants.CONNECTION);
 		    }
 			if (connection.port == 0)
 				connection.port = 5900;
@@ -417,6 +422,15 @@ public class VncCanvasActivity extends AppCompatActivity implements PopupMenu.On
 		touchpoints = (TouchPointView) findViewById(R.id.touchpoints);
 		touchpoints.setInputHandler(inputHandler);
 
+		// Hide UI elements on Android TV
+		if (isAndroidTV) {
+			findViewById(R.id.fab).setVisibility(View.GONE);
+			zoomer.setVisibility(View.GONE);
+			mousebuttons.setVisibility(View.GONE);
+			touchpoints.setVisibility(View.GONE);
+			zoomLevel.setVisibility(View.GONE);
+			vncCanvas.setPointerHighlight(false);
+		}
 
 		if(! prefs.getBoolean(Constants.PREFS_KEY_POINTERHIGHLIGHT, true))
 			vncCanvas.setPointerHighlight(false);
@@ -552,7 +566,7 @@ public class VncCanvasActivity extends AppCompatActivity implements PopupMenu.On
 				mousebuttons.setVisibility(View.VISIBLE);
 				ed.putBoolean(Constants.PREFS_KEY_MOUSEBUTTONS, true);
 			}
-			ed.commit();
+			ed.apply();
 			return true;
 
 		case R.id.itemTogglePointerHighlight:
@@ -562,7 +576,7 @@ public class VncCanvasActivity extends AppCompatActivity implements PopupMenu.On
 				vncCanvas.setPointerHighlight(true);
 
 			ed.putBoolean(Constants.PREFS_KEY_POINTERHIGHLIGHT, vncCanvas.getPointerHighlight());
-			ed.commit();
+			ed.apply();
 			return true;
 
 		case R.id.itemToggleKeyboard:
@@ -822,7 +836,7 @@ public class VncCanvasActivity extends AppCompatActivity implements PopupMenu.On
 	Runnable hideZoomLevelInstance = () -> zoomLevel.setVisibility(View.INVISIBLE);
 	public void showZoomLevel()
 	{
-		zoomLevel.setText("" + (int)(vncCanvas.getScale()*100) +"%");
+		zoomLevel.setText(getString(R.string.zoom_level_percent, (int)(vncCanvas.getScale()*100)));
 		zoomLevel.setVisibility(View.VISIBLE);
 		vncCanvas.handler.removeCallbacks(hideZoomLevelInstance);
 		vncCanvas.handler.postDelayed(hideZoomLevelInstance, ZOOM_HIDE_DELAY_MS);

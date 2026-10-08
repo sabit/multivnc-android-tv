@@ -554,6 +554,7 @@ public class VncCanvas extends GLSurfaceView implements VNCConn.OnFramebufferEve
 
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
+		performClick();
 		return inputHandler.onTouchEvent(event);
 	}
 

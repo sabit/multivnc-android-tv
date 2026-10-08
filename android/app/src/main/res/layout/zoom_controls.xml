@@ -22,17 +22,17 @@
         android:background="@drawable/ic_zoom_out_grey_48dp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        />
+        android:contentDescription="@string/zoom_out" />
     <ImageButton android:id="@+id/zoomKeys"
     	android:background="@drawable/ic_keyboard_grey_48dp"
     	android:layout_width="wrap_content"
     	android:layout_height="wrap_content"
 		android:layout_marginLeft="5dp"
 		android:layout_marginRight="5dp"
-		/>
+		android:contentDescription="@string/toggle_keyboard" />
     <ZoomButton android:id="@+id/zoomIn" 
         android:background="@drawable/ic_zoom_in_grey_48dp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        />
+        android:contentDescription="@string/zoom_in" />
 </merge>

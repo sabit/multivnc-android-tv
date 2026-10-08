@@ -240,7 +240,7 @@ public class MainMenuActivity extends AppCompatActivity implements MDNSService.O
 						SharedPreferences settings = getSharedPreferences(Constants.PREFSNAME, MODE_PRIVATE);
 						SharedPreferences.Editor ed = settings.edit();
 						ed.putBoolean(Constants.PREFS_KEY_SUPPORTDLG, false);
-						ed.commit();
+						ed.apply();
 
 						try{
 							dialog.dismiss();
@@ -271,7 +271,7 @@ public class MainMenuActivity extends AppCompatActivity implements MDNSService.O
 			if(lastVersionCode < versionCode) {
 				SharedPreferences.Editor editor = settings.edit();
 				editor.putInt("lastVersionCode", versionCode);
-				editor.commit();
+				editor.apply();
 
 				AlertDialog.Builder builder = new AlertDialog.Builder(this);
 				builder.setTitle(getString(R.string.changelog_dialog_title));
@@ -586,7 +586,7 @@ public class MainMenuActivity extends AppCompatActivity implements MDNSService.O
 						// name part of list item
 						TextView name = (TextView) v.findViewById(R.id.discovered_server_name);
 						name.setText(c.nickname);
-						name.setOnClickListener(new View.OnClickListener() {
+						v.setOnClickListener(new View.OnClickListener() {
 							@Override
 							public void onClick(View view) {
 								Log.d(TAG, "Starting discovered connection " + c.toString());

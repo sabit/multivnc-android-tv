@@ -80,21 +80,21 @@ class ImportExportDialog : AppCompatDialogFragment() {
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, resultData: Intent?) {
-        if (resultCode == Activity.RESULT_OK && resultData != null && resultData.data != null && context != null) {
+        if (resultCode == Activity.RESULT_OK && resultData != null && resultData.data != null) {
 
             if (requestCode == REQUEST_CODE_READ_FILE) {
                 Log.d(
                     TAG,
-                    "user opened for reading " + resultData.data + " with type " + context!!.contentResolver.getType(
+                    "user opened for reading " + resultData.data + " with type " + requireContext().contentResolver.getType(
                         resultData.data!!
                     )
                 )
                 try {
                     val reader =
-                        InputStreamReader(context!!.contentResolver.openInputStream(resultData.data!!))
+                        InputStreamReader(requireContext().contentResolver.openInputStream(resultData.data!!))
                     importDatabase(vncDatabase, reader)
                     Log.d(TAG, "import successful!")
-                    Toast.makeText(context, android.R.string.ok, Toast.LENGTH_LONG).show()
+                    Toast.makeText(requireContext(), android.R.string.ok, Toast.LENGTH_LONG).show()
                 } catch (e: Throwable) {
                     when (e) {
                         is MalformedURLException -> errorNotify(
@@ -111,11 +111,11 @@ class ImportExportDialog : AppCompatDialogFragment() {
                 Log.d(TAG, "user opened for writing ${resultData.data}")
                 try {
                     val writer: Writer =
-                        OutputStreamWriter(context!!.contentResolver.openOutputStream(resultData.data!!))
+                        OutputStreamWriter(requireContext().contentResolver.openOutputStream(resultData.data!!))
                     exportDatabase(vncDatabase, writer)
                     writer.close()
                     Log.d(TAG, "export successful!")
-                    Toast.makeText(context, android.R.string.ok, Toast.LENGTH_LONG).show()
+                    Toast.makeText(requireContext(), android.R.string.ok, Toast.LENGTH_LONG).show()
                 } catch (ioe: IOException) {
                     errorNotify("I/O Exception exporting config", ioe)
                 }

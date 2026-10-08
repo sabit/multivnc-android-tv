@@ -91,6 +91,7 @@ public class ZoomControls extends LinearLayout {
         /* Consume all touch events so they don't get dispatched to the view
          * beneath this view.
          */
+        performClick();
         return true;
     }
     

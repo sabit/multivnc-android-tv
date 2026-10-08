@@ -55,9 +55,7 @@ public class TouchPointView extends SurfaceView implements SurfaceHolder.Callbac
 			convert the vector drawable into a bitmap
 		 */
 		Drawable drawable = ContextCompat.getDrawable(context, R.drawable.touchpad);
-		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
-			drawable = (DrawableCompat.wrap(drawable)).mutate();
-		}
+		drawable = (DrawableCompat.wrap(drawable)).mutate();
 		Bitmap bitmap = Bitmap.createBitmap(drawable.getIntrinsicWidth(),
 				drawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
 		Canvas canvas = new Canvas(bitmap);
@@ -122,6 +120,7 @@ public class TouchPointView extends SurfaceView implements SurfaceHolder.Callbac
 			getHolder().unlockCanvasAndPost(c);
 		}
 		
+		performClick();
 		return inputHandler.onTouchEvent(event);
 	}
 
