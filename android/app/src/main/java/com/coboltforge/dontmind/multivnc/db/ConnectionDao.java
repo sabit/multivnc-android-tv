@@ -22,6 +22,9 @@ public interface ConnectionDao {
     @Query("SELECT * FROM CONNECTION_BEAN ORDER BY NICKNAME")
     Cursor getAllAsCursor();
 
+    @Query("SELECT * FROM CONNECTION_BEAN WHERE USEREPEATER = 1 AND REPEATERID != '' AND REPEATERID IS NOT NULL ORDER BY _id LIMIT 1")
+    ConnectionBean getFirstRepeaterConnection();
+
     @Insert
     long insert(ConnectionBean c);
 

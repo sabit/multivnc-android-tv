@@ -135,4 +135,15 @@
     <string name="zoom_level_percent">%d%%</string>
     <string name="zoom_level_percent_default">100%</string>
 
+    <string name="repeater_auto_connect_title">Quickcast</string>
+    <string name="stop_repeater_reconnect">Stop Reconnecting</string>
+    <string name="no_repeater_bookmark">No bookmarked connection with Repeater ID found</string>
+    <string name="waiting">Waiting</string>
+    <string name="using_repeater_id">PIN: %s</string>
+    <string name="reconnecting_repeater">Reconnecting...\nUsing Repeater ID: %s\nPlease wait...</string>
+    <string name="quickstart_choice_message">Choose an option:</string>
+    <string name="quickstart_start">Quickcast</string>
+    <string name="quickstart_open_main">Settings</string>
+    <string name="go_to_settings">Go to Settings</string>
+
 </resources>

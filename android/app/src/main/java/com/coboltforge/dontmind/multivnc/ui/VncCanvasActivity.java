@@ -31,6 +31,8 @@ import android.app.ProgressDialog;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.ClipboardManager;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -57,6 +59,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.view.inputmethod.InputMethodManager;
 import android.content.Context;
+import java.util.Random;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -98,6 +101,14 @@ public class VncCanvasActivity extends AppCompatActivity implements PopupMenu.On
 	private SharedPreferences prefs;
 
 	private ClipboardManager mClipboardManager;
+
+	// Repeater auto-reconnect fields
+	private boolean isRepeaterAutoConnect = false;
+	private boolean autoReconnectMode = false;
+	private ConnectionBean originalConnection;
+	private String currentRepeaterId;
+	private final Handler reconnectHandler = new Handler(Looper.getMainLooper());
+	private static final int RECONNECT_DELAY_MS = 3000;
 
 	@SuppressLint("ShowToast")
 	@Override
@@ -243,6 +254,19 @@ public class VncCanvasActivity extends AppCompatActivity implements PopupMenu.On
 			connection.parseHostPort(connection.address);
 		}
 
+		// Check for repeater auto-connect mode
+		Bundle extras = i.getExtras();
+		if (extras != null) {
+			isRepeaterAutoConnect = extras.getBoolean(Constants.IS_REPEATER_AUTO_CONNECT, false);
+			autoReconnectMode = extras.getBoolean(Constants.REPEATER_AUTO_RECONNECT, false);
+			currentRepeaterId = extras.getString(Constants.INITIAL_REPEATER_ID);
+			originalConnection = extras.getParcelable(Constants.ORIGINAL_CONNECTION);
+			
+			if (isRepeaterAutoConnect && currentRepeaterId != null) {
+				connection.repeaterId = currentRepeaterId;
+			}
+		}
+
 
 		/*
 		 * Setup canvas and conn.
@@ -260,9 +284,31 @@ public class VncCanvasActivity extends AppCompatActivity implements PopupMenu.On
 		// Startup the VNCConn with a nifty progress dialog
 		final ProgressDialog pd = new ProgressDialog(this);
 		pd.setCancelable(false); // on ICS, clicking somewhere cancels the dialog. not what we want...
-		pd.setTitle("Connecting...");
-		pd.setMessage("Establishing handshake.\nPlease wait...");
-		pd.setButton(DialogInterface.BUTTON_NEGATIVE, getString(android.R.string.cancel), (dialog, which) -> finish());
+		if (isRepeaterAutoConnect) {
+			pd.setTitle(getString(R.string.waiting));
+			String msg = getString(R.string.using_repeater_id, currentRepeaterId);
+			android.text.SpannableString initialSpannable = new android.text.SpannableString(msg);
+			int startIdx = msg.indexOf(currentRepeaterId);
+			if (startIdx >= 0) {
+				initialSpannable.setSpan(new android.text.style.RelativeSizeSpan(3.0f), startIdx, startIdx + currentRepeaterId.length(), android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+				initialSpannable.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD), startIdx, startIdx + currentRepeaterId.length(), android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+			}
+			pd.setMessage(initialSpannable);
+			pd.setButton(DialogInterface.BUTTON_NEGATIVE, getString(R.string.stop_repeater_reconnect), (dialog, which) -> {
+				autoReconnectMode = false;
+				finish();
+			});
+			pd.setButton(DialogInterface.BUTTON_NEUTRAL, getString(R.string.go_to_settings), (dialog, which) -> {
+				autoReconnectMode = false;
+				conn.shutdown();
+				startActivity(new Intent(VncCanvasActivity.this, MainMenuActivity.class));
+				finish();
+			});
+		} else {
+			pd.setTitle("Connecting...");
+			pd.setMessage("Establishing handshake.\nPlease wait...");
+			pd.setButton(DialogInterface.BUTTON_NEGATIVE, getString(android.R.string.cancel), (dialog, which) -> finish());
+		}
 		pd.show();
 		firstFrameWaitDialog = pd;
 		vncCanvas.initializeVncCanvas(pd, inputHandler, conn); // add conn to canvas
@@ -340,26 +386,159 @@ public class VncCanvasActivity extends AppCompatActivity implements PopupMenu.On
 						Utils.showFatalErrorMessage(VncCanvasActivity.this, error_);
 					}
 				}),
-				// onDisconnect
-				disconnectError -> runOnUiThread(() -> {
-					try {
-						// Ensure we dismiss the progress dialog
-						// before we fatal error finish
-						if (firstFrameWaitDialog.isShowing())
-							firstFrameWaitDialog.dismiss();
-					} catch (Exception e) {
-						//unused
-					}
+// onDisconnect
+			disconnectError -> runOnUiThread(() -> {
+				try {
+					// Ensure we dismiss the progress dialog
+					// before we fatal error finish
+					if (firstFrameWaitDialog != null && firstFrameWaitDialog.isShowing())
+						firstFrameWaitDialog.dismiss();
+				} catch (Exception e) {
+					//unused
+				}
 
-					if(disconnectError != null) {
-						String error = "VNC connection failed!";
-						final String error_ = error + "<br>" + ((disconnectError.getLocalizedMessage() != null) ? disconnectError.getLocalizedMessage() : "");
-						Utils.showFatalErrorMessage(VncCanvasActivity.this, error_);
-					}
+				// Handle auto-reconnect mode
+				if (autoReconnectMode && !isFinishing()) {
+					// Generate NEW random 5-digit ID
+					String newRepeaterId = String.valueOf(new Random().nextInt(90000) + 10000);
+					currentRepeaterId = newRepeaterId;
+					connection.repeaterId = newRepeaterId;
 
-					// deregister connection
-					VNCConnService.deregister(VncCanvasActivity.this, conn);
-				}));
+					// Show progress dialog with new ID only - make ID text large for TV
+					firstFrameWaitDialog = new ProgressDialog(VncCanvasActivity.this);
+					firstFrameWaitDialog.setCancelable(false);
+					firstFrameWaitDialog.setTitle(getString(R.string.waiting));
+					String msg = getString(R.string.using_repeater_id, newRepeaterId);
+					android.text.SpannableString reconnectSpannable = new android.text.SpannableString(msg);
+					int reconnectStartIdx = msg.indexOf(newRepeaterId);
+					if (reconnectStartIdx >= 0) {
+						reconnectSpannable.setSpan(new android.text.style.RelativeSizeSpan(3.0f), reconnectStartIdx, reconnectStartIdx + newRepeaterId.length(), android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+						reconnectSpannable.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD), reconnectStartIdx, reconnectStartIdx + newRepeaterId.length(), android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+					}
+					firstFrameWaitDialog.setMessage(reconnectSpannable);
+					firstFrameWaitDialog.setButton(DialogInterface.BUTTON_NEGATIVE,
+						getString(R.string.stop_repeater_reconnect),
+						(dialog, which) -> {
+							autoReconnectMode = false;
+							finish();
+						});
+					firstFrameWaitDialog.setButton(DialogInterface.BUTTON_NEUTRAL, getString(R.string.go_to_settings), (dialog, which) -> {
+						autoReconnectMode = false;
+						if (vncCanvas.vncConn != null) {
+							vncCanvas.vncConn.shutdown();
+						}
+						startActivity(new Intent(VncCanvasActivity.this, MainMenuActivity.class));
+						finish();
+					});
+					firstFrameWaitDialog.show();
+
+					// Small delay before reconnect
+					reconnectHandler.postDelayed(() -> {
+						if (autoReconnectMode && !isFinishing()) {
+							// Re-initialize connection
+							VNCConn newConn = new VNCConn(vncCanvas, vncCanvas);
+							VNCConnService.register(VncCanvasActivity.this, newConn);
+							vncCanvas.initializeVncCanvas(firstFrameWaitDialog, inputHandler, newConn);
+
+							byte[] reconnectSshFingerprint = null;
+							if (connection.sshHost != null && connection.sshPort != null) {
+								reconnectSshFingerprint = database.getSshKnownHostDao().get(
+									Utils.uriFormatHostWithPort(connection.sshHost, connection.sshPort)) != null
+									? database.getSshKnownHostDao().get(Utils.uriFormatHostWithPort(connection.sshHost, connection.sshPort)).fingerprint
+									: null;
+							}
+							if (reconnectSshFingerprint == null) {
+								reconnectSshFingerprint = database.getSshKnownHostDao().get(connection.sshHost) != null
+									? database.getSshKnownHostDao().get(connection.sshHost).fingerprint
+									: null;
+							}
+
+							newConn.init(connection,
+								reconnectSshFingerprint,
+								database.getX509KnownHostDao().get(Utils.uriFormatHostWithPort(connection.address, connection.port)) != null
+									? database.getX509KnownHostDao().get(Utils.uriFormatHostWithPort(connection.address, connection.port)).fingerprint
+									: null,
+								// onInit
+								initError -> runOnUiThread(() -> {
+									if (isFinishing()) return;
+									if (initError != null) {
+										// Actual connection error - show it, then retry
+										String errorMsg = "Connection failed: " + initError.getLocalizedMessage() + "\n\nRetrying in 3 seconds...";
+										android.text.SpannableString errorSpannable = new android.text.SpannableString(errorMsg);
+										errorSpannable.setSpan(new android.text.style.RelativeSizeSpan(2.0f), 0, errorMsg.length(), android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+										firstFrameWaitDialog.setMessage(errorSpannable);
+										reconnectHandler.postDelayed(() -> {
+											if (autoReconnectMode && !isFinishing()) {
+												newConn.shutdown();
+											}
+										}, RECONNECT_DELAY_MS);
+									} else {
+										// Success!
+										setTitle(newConn.getDesktopName());
+										setModes();
+										String successMsg = getString(R.string.using_repeater_id, currentRepeaterId);
+										android.text.SpannableString spannable = new android.text.SpannableString(successMsg);
+										int startIdx = successMsg.indexOf(currentRepeaterId);
+										if (startIdx >= 0) {
+											spannable.setSpan(new android.text.style.RelativeSizeSpan(3.0f), startIdx, startIdx + currentRepeaterId.length(), android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+											spannable.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD), startIdx, startIdx + currentRepeaterId.length(), android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+										}
+										firstFrameWaitDialog.setMessage(spannable);
+										vncCanvas.mouseX = newConn.getFramebufferWidth() / 2;
+										vncCanvas.mouseY = newConn.getFramebufferHeight() / 2;
+										
+										if (Build.VERSION.SDK_INT < 33) {
+											showHelpDialog();
+											VNCConnService.register(VncCanvasActivity.this, newConn);
+											vncCanvas.showConnectionInfo();
+										} else {
+											if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+												showHelpDialog();
+												VNCConnService.register(VncCanvasActivity.this, newConn);
+												vncCanvas.showConnectionInfo();
+											} else if (shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)) {
+												new AlertDialog.Builder(VncCanvasActivity.this)
+													.setCancelable(false)
+													.setTitle(R.string.notification_title)
+													.setMessage(R.string.notification_msg)
+													.setPositiveButton(android.R.string.ok, (dialog, which) -> {
+														requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+													})
+													.setCancelable(false)
+													.show();
+											} else {
+												requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+											}
+										}
+									}
+								}),
+								// onDisconnect - recursive callback for subsequent disconnects
+								disconnectError2 -> runOnUiThread(() -> {
+									if (autoReconnectMode && !isFinishing()) {
+										reconnectHandler.postDelayed(() -> {
+											if (autoReconnectMode && !isFinishing()) {
+												newConn.shutdown();
+											}
+										}, RECONNECT_DELAY_MS);
+									} else {
+										VNCConnService.deregister(VncCanvasActivity.this, newConn);
+									}
+								}));
+						}
+					}, RECONNECT_DELAY_MS);
+					return;
+				}
+
+				// Normal (non-auto-reconnect) behavior
+				if (disconnectError != null) {
+					String error = "VNC connection failed!";
+					final String error_ = error + "<br>" + ((disconnectError.getLocalizedMessage() != null) ? disconnectError.getLocalizedMessage() : "");
+					Utils.showFatalErrorMessage(VncCanvasActivity.this, error_);
+				}
+
+				// deregister connection
+				VNCConnService.deregister(VncCanvasActivity.this, conn);
+			}));
 
 		zoomer.setOnZoomInClickListener(new View.OnClickListener() {
 
@@ -669,6 +848,7 @@ public class VncCanvasActivity extends AppCompatActivity implements PopupMenu.On
 	@Override
 	protected void onDestroy() {
 		super.onDestroy();
+		reconnectHandler.removeCallbacksAndMessages(null);
 		if (isFinishing()) {
 			try {
 				inputHandler.shutdown();
@@ -906,5 +1086,4 @@ public class VncCanvasActivity extends AppCompatActivity implements PopupMenu.On
 			ed.apply();
 		}
 	}
-
 }

@@ -12,19 +12,25 @@
 	<uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
 	<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+    <uses-feature android:name="android.software.leanback" android:required="false" />
+
     <application android:icon="@drawable/ic_launcher" android:label="MultiVNC" android:hardwareAccelerated="true"
 		 android:theme="@style/AppTheme"
+		 android:banner="@drawable/banner_tv"
 		>
 
-		<activity android:label="@string/app_name"
-		          android:name=".ui.MainMenuActivity"
-			      android:exported="true"
-		    	  >
-			<intent-filter>
-				<action android:name="android.intent.action.MAIN" />
-				<category android:name="android.intent.category.LAUNCHER" />
-			</intent-filter>
-		</activity>
+<activity android:label="@string/app_name"
+	          android:name=".ui.MainMenuActivity"
+		      android:exported="true"
+	    	  >
+		<intent-filter>
+			<action android:name="android.intent.action.MAIN" />
+			<category android:name="android.intent.category.DEFAULT" />
+		</intent-filter>
+		<meta-data android:name="android.app.shortcuts"
+			   android:resource="@xml/shortcuts" />
+	</activity>
 		<activity  android:configChanges="orientation|keyboard|keyboardHidden|screenSize|screenLayout" android:name=".ui.VncCanvasActivity" android:launchMode="singleTask"
 			android:exported="true">
 			<intent-filter>
@@ -37,13 +43,13 @@
             </intent-filter>
 		</activity>
        <activity android:name=".ui.ConnectionListActivity"
-                 android:label="@string/shortcut_label"
+                  android:label="@string/shortcut_label"
 		         android:exported="true"
-                 >
-        	<intent-filter>
-        		<action android:name="android.intent.action.CREATE_SHORTCUT" />
-        		<category android:name="android.intent.category.DEFAULT" />
-        	</intent-filter>
+                  >
+         	<intent-filter>
+         		<action android:name="android.intent.action.CREATE_SHORTCUT" />
+         		<category android:name="android.intent.category.DEFAULT" />
+         	</intent-filter>
         </activity>
 
         <activity android:name=".ui.ConnectionEditActivity"
@@ -51,11 +57,22 @@
             >
        	</activity>
 
-        <activity android:name=".ui.AboutActivity"
+<activity android:name=".ui.AboutActivity"
              android:label="@string/about"
-			android:theme="@style/AppTheme.NoActionBar"
+  			android:theme="@style/AppTheme.NoActionBar"
              >
-		</activity>
+  		</activity>
+
+        <activity android:name=".ui.RepeaterAutoConnectActivity"
+            android:label="@string/repeater_auto_connect_title"
+            android:icon="@drawable/ic_repeater_auto_connect"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity>
 
          <activity android:name=".ui.HelpActivity"
              android:label="@string/help"

@@ -322,10 +322,32 @@ public class MainMenuActivity extends AppCompatActivity implements MDNSService.O
 	public boolean onCreateOptionsMenu(Menu menu) {
 		getMenuInflater().inflate(R.menu.mainmenuactivitymenu,menu);
 
+		menu.findItem(R.id.itemQuickstart).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
 		menu.findItem(R.id.itemMDNSRestart).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
-		menu.findItem(R.id.itemImportExport).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
-		menu.findItem(R.id.itemOpenDoc).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
 
+		// Set click listener on custom action view button
+		View actionView = menu.findItem(R.id.itemQuickstart).getActionView();
+		if (actionView != null) {
+			Button btnQuickstart = actionView.findViewById(R.id.btnQuickstart);
+			if (btnQuickstart != null) {
+				btnQuickstart.setOnClickListener(v -> startActivity(new Intent(this, RepeaterAutoConnectActivity.class)));
+			}
+		}
+
+		return true;
+	}
+
+	@Override
+	public boolean onPrepareOptionsMenu(Menu menu) {
+		super.onPrepareOptionsMenu(menu);
+		// Request focus on Quickstart button for quick access
+		View actionView = menu.findItem(R.id.itemQuickstart).getActionView();
+		if (actionView != null) {
+			Button btnQuickstart = actionView.findViewById(R.id.btnQuickstart);
+			if (btnQuickstart != null) {
+				btnQuickstart.requestFocus();
+			}
+		}
 		return true;
 	}
 
@@ -337,6 +359,9 @@ public class MainMenuActivity extends AppCompatActivity implements MDNSService.O
 	public boolean onOptionsItemSelected(MenuItem item) {
 		switch (item.getItemId())
 		{
+		case R.id.itemQuickstart :
+			startActivity(new Intent(this, RepeaterAutoConnectActivity.class));
+			break;
 		case R.id.itemMDNSRestart :
 			serverlist.removeAllViews();
 			findViewById(R.id.discovered_servers_waitwheel).setVisibility(View.VISIBLE);
@@ -346,13 +371,6 @@ public class MainMenuActivity extends AppCompatActivity implements MDNSService.O
 			}
 			catch(NullPointerException e) {
 			}
-			break;
-		case R.id.itemImportExport :
-			new ImportExportDialog().show(getSupportFragmentManager(), "importexport");
-			break;
-		case R.id.itemOpenDoc :
-			Intent intent = new Intent (this, AboutActivity.class);
-			this.startActivity(intent);
 			break;
 		}
 		return true;
